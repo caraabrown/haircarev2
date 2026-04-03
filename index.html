@@ -82,7 +82,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 
 /* -- HEADER -- */
-.header{background:rgba(14,20,37,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;padding:0 32px;}
+.header{background:#0D1323;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;padding:0 32px;}
 .header-inner{display:flex;align-items:center;gap:24px;height:52px;}
 .logo{font-family:var(--font-head);font-size:15px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text);white-space:nowrap;flex-shrink:0;}
 .logo span{color:var(--accent);}
@@ -94,7 +94,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-si
 .ico-btn:hover{color:var(--accent);}
 
 /* -- NAV -- */
-.nav{background:rgba(14,20,37,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:199;padding:0 32px;overflow-x:auto;scrollbar-width:none;}
+.nav{background:#0D1323;border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:199;padding:0 32px;overflow-x:auto;scrollbar-width:none;}
 .nav::-webkit-scrollbar{display:none;}
 .nav-inner{display:flex;gap:0;white-space:nowrap;}
 .n{background:none;border:none;color:var(--text3);font-family:var(--font-body);font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;padding:0 20px;height:44px;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
@@ -334,10 +334,7 @@ h3 {
 .modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9998;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);}
 .modal.open{display:flex;}
 .modal-box{background:var(--surface);border:none;border-radius:var(--r);padding:36px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.7);position:relative;}
-/* Hide sticky header/nav when modal is open so they don't bleed over */
-body.modal-open .header,
-body.modal-open .nav,
-body.modal-open .hero-strip { visibility: hidden; }
+
 .modal-x{position:absolute;top:16px;right:16px;width:32px;height:32px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:color .15s;}
 .modal-x:hover{color:var(--accent);}
 .modal-title{font-family:var(--font-head);font-size:24px;font-weight:700;margin-bottom:6px;}
@@ -564,7 +561,7 @@ html { font-size: 16px; }
   transition: opacity .15s, color .15s;
   z-index: 2;
 }
-.prod-card:hover .prod-edit-btn { opacity: 1; }
+.prod-card.card-active .prod-edit-btn { opacity: 1; }
 .prod-edit-btn:hover { color: var(--accent); border-color: var(--accent); }
 
 .prod-delete-btn {
@@ -607,7 +604,7 @@ html { font-size: 16px; }
   transition: opacity .15s, color .15s;
   z-index: 2;
 }
-.prod-card:hover .prod-edit-btn { opacity: 1; }
+.prod-card.card-active .prod-edit-btn { opacity: 1; }
 .prod-edit-btn:hover { color: var(--accent); border-color: var(--accent); }
 
 .prod-delete-btn { opacity: 1; }
@@ -2915,16 +2912,12 @@ function toggleAcc(item) { item.classList.toggle('open'); }
 
 // ── Modals
 function openM(id) {
-  document.body.classList.add('modal-open');
   if(id==='m-edit-all') renderEditAllGrid();
   document.getElementById(id).classList.add('open');
   if (id==='m-settings') { document.getElementById('s-date').value = ST.start||''; document.getElementById('s-wash').value = ST.washDay; document.getElementById('s-style').value = ST.style; document.getElementById('s-apikey').value = ST.apiKey; }
   if (id==='m-log') document.getElementById('l-date').value = new Date().toISOString().split('T')[0];
 }
-function closeM(id) {
-  document.getElementById(id).classList.remove('open');
-  if(!document.querySelector('.modal.open')) document.body.classList.remove('modal-open');
-}
+function closeM(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); }));
 
 // ── Settings
@@ -3441,6 +3434,26 @@ function saveAllEdits() {
 
 // Update getAllProds to apply name/cat/use overrides
 
+
+
+function cardClick(e, nameEnc, card) {
+  // If clicking a button inside the card, don't toggle
+  if(e.target.closest('button')) return;
+  if(!card.classList.contains('card-active')) {
+    // First click — just activate (show buttons)
+    document.querySelectorAll('.prod-card.card-active').forEach(c => c.classList.remove('card-active'));
+    card.classList.add('card-active');
+  } else {
+    // Second click on same card — open detail
+    openProdDetail(nameEnc);
+  }
+}
+// Click outside cards to deactivate
+document.addEventListener('click', function(e) {
+  if(!e.target.closest('.prod-card')) {
+    document.querySelectorAll('.prod-card.card-active').forEach(c => c.classList.remove('card-active'));
+  }
+});
 
 function editProduct(e, nameEnc) {
   e.stopPropagation();
@@ -4054,7 +4067,7 @@ function renderProdLibrary() {
     
     const imp = getProdImportance(p.name);
     if(_impFilter !== 'all' && imp !== _impFilter) return '';
-    return `<div class="prod-card" onclick="openProdDetail('${encodeURIComponent(p.name)}')" style="border-top: 3px solid ${color};">
+    return `<div class="prod-card" onclick="cardClick(event,'${encodeURIComponent(p.name)}',this)" style="border-top: 3px solid ${color};">
       <button class="prod-delete-btn" onclick="deleteProduct(event,'${encodeURIComponent(p.name)}')" title="Remove product">×</button>
       <div class="prod-score-ring">${scoreRingSVG(avg, color)}</div>
       <div class="prod-card-top">
