@@ -544,6 +544,29 @@ html { font-size: 16px; }
 .prod-session-dots { display: flex; gap: 4px; flex-wrap: wrap; }
 .sess-dot { width: 8px; height: 8px; border-radius: 50%; }
 
+.prod-edit-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 36px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: none;
+  color: var(--text3);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity .15s, color .15s;
+  z-index: 2;
+}
+.prod-card:hover .prod-edit-btn { opacity: 1; }
+.prod-edit-btn:hover { color: var(--accent); border-color: var(--accent); }
+
 .prod-delete-btn {
   position: absolute;
   bottom: 12px;
@@ -564,7 +587,30 @@ html { font-size: 16px; }
   transition: opacity .15s, color .15s, border-color .15s;
   z-index: 2;
 }
-.prod-card:hover .prod-delete-btn { opacity: 1; }
+.prod-card:hover .prod-edit-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 36px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  background: none;
+  color: var(--text3);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity .15s, color .15s;
+  z-index: 2;
+}
+.prod-card:hover .prod-edit-btn { opacity: 1; }
+.prod-edit-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+.prod-delete-btn { opacity: 1; }
 .prod-delete-btn:hover { color: var(--red); border-color: var(--red); }
 
 
@@ -2539,7 +2585,6 @@ em, i { font-style: italic; }
       </div>
       <div class="flex gap8">
         <button class="filter-chip" onclick="toggleStepView(this)" id="step-view-btn">View by Step</button>
-        <button class="btn btn-sm" style="background:var(--surface2);" onclick="openM('m-edit-all')">Edit Products</button>
         <button class="btn btn-accent btn-sm" onclick="openM('m-add-product')">+ Add Product</button>
       </div>
     </div>
@@ -3395,6 +3440,40 @@ function saveAllEdits() {
 }
 
 // Update getAllProds to apply name/cat/use overrides
+
+
+function editProduct(e, nameEnc) {
+  e.stopPropagation();
+  const name = decodeURIComponent(nameEnc);
+  const all = getAllProds();
+  const p = all.find(x => x.name === name) || {};
+  document.getElementById('ep-name').value = p.name || name;
+  document.getElementById('ep-cat').value = p.cat || 'Commercial';
+  document.getElementById('ep-use').value = p.use || '';
+  document.getElementById('ep-orig').value = nameEnc;
+  openM('m-edit-prod');
+}
+
+function saveProductEdit() {
+  const origName = decodeURIComponent(document.getElementById('ep-orig').value);
+  const newName = document.getElementById('ep-name').value.trim();
+  const newCat = document.getElementById('ep-cat').value;
+  const newUse = document.getElementById('ep-use').value.trim();
+  if(!newName) return;
+
+  const isDefault = PRODUCT_DEFAULTS.some(p => p.name === origName);
+  if(isDefault) {
+    const overrides = S.get('prod-name-overrides') || {};
+    overrides[origName] = {name: newName, cat: newCat, use: newUse};
+    S.set('prod-name-overrides', overrides);
+  } else {
+    const saved = S.get('user-products') || [];
+    const idx = saved.findIndex(p => p.name === origName);
+    if(idx !== -1) { saved[idx].name = newName; saved[idx].cat = newCat; saved[idx].use = newUse; S.set('user-products', saved); }
+  }
+  closeM('m-edit-prod');
+  renderProdLibrary();
+}
 
 function renderAchievements(pct,streak) {
   const logs=S.get('logs')||[];
@@ -4912,5 +4991,29 @@ init();
   </div>
 </div>
 
+
+<!-- Single product edit modal -->
+<div class="modal" id="m-edit-prod">
+  <div class="modal-box" style="max-width:420px;">
+    <button class="modal-x" onclick="closeM('m-edit-prod')">&#10005;</button>
+    <div class="modal-title">Edit Product</div>
+    <div class="fgrp"><label class="flbl">Name</label><input class="finp" id="ep-name" placeholder="Product name"></div>
+    <div class="fgrp"><label class="flbl">Category</label>
+      <select class="fsel" id="ep-cat">
+        <option value="Natural">Natural / Ayurvedic</option>
+        <option value="Professional">Professional / Lab</option>
+        <option value="Commercial">Commercial</option>
+        <option value="Supplement">Supplement</option>
+        <option value="DIY">DIY</option>
+      </select>
+    </div>
+    <div class="fgrp"><label class="flbl">Use / Step</label><input class="finp" id="ep-use" placeholder="e.g. Pre-poo, LOC O-step"></div>
+    <input type="hidden" id="ep-orig">
+    <div class="flex gap8">
+      <button class="btn btn-accent" style="flex:1;" onclick="saveProductEdit()">Save</button>
+      <button class="btn" style="background:var(--surface2);" onclick="closeM('m-edit-prod')">Cancel</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
